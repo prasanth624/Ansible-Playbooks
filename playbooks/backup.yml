@@ -1,0 +1,41 @@
+# ============================================
+# Run this playbook with:
+# ansible-playbook -i inventory.ini backup.yml
+# ============================================
+
+---
+- name: Configure backups
+  hosts: all
+  become: yes
+
+  vars:
+    backup_source: /etc
+    backup_destination: /var/backups/etc
+    backup_user: root
+    backup_schedule: "0 2 * * *"   # Daily at 02:00
+
+  tasks:
+    - name: Ensure backup destination exists
+      ansible.builtin.file:
+        path: "{{ backup_destination }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0750'
+
+    - name: Install rsync
+      ansible.builtin.package:
+        name: rsync
+        state: present
+
+    - name: Configure cron job for backups
+      ansible.builtin.cron:
+        name: "Daily backup of {{ backup_source }}"
+        user: "{{ backup_user }}"
+        minute: "{{ backup_schedule.split()[0] }}"
+        hour: "{{ backup_schedule.split()[1] }}"
+        day: "{{ backup_schedule.split()[2] }}"
+        month: "{{ backup_schedule.split()[3] }}"
+        weekday: "{{ backup_schedule.split()[4] }}"
+        job: >
+          rsync -a --delete {{ backup_source }}/ {{ backup_destination }}/

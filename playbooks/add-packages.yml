@@ -1,0 +1,23 @@
+# ============================================
+# Run this playbook with:
+# ansible-playbook -i inventory.ini packages.yml
+# ============================================
+
+---
+- name: Install base system packages
+  hosts: all
+  become: yes
+
+  vars:
+    base_packages:
+      - curl
+      - vim
+      - git
+      - htop
+      - ca-certificates
+
+  tasks:
+    - name: Ensure base packages are installed
+      ansible.builtin.package:
+        name: "{{ base_packages }}"
+        state: present
