@@ -1,0 +1,41 @@
+# ============================================
+# Run this playbook with:
+# ansible-playbook -i inventory.ini manage_users.yml
+#
+# Example with SSH user and sudo password:
+# ansible-playbook -i inventory.ini manage_users.yml \
+#   -u admin --ask-become-pass
+# ============================================
+
+---
+- name: Manage users and SSH keys
+  hosts: all
+  become: yes
+
+  vars:
+    ssh_users:
+      - name: prasanth
+        ssh_keys:
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKey1 prasanth@ec2"
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKey2 prasanth@desktop"
+
+      - name: prasanth-linux
+        ssh_keys:
+          - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCExampleKey prasanth-linux@work"
+
+  tasks:
+    - name: Ensure users exist
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        shell: /bin/bash
+        state: present
+        create_home: true
+      loop: "{{ ssh_users }}"
+
+    - name: Add SSH authorized keys
+      ansible.builtin.authorized_key:
+        user: "{{ item.0.name }}"
+        key: "{{ item.1 }}"
+        state: present
+        exclusive: false
+      loop: "{{ ssh_users | subelements('ssh_keys') }}"
